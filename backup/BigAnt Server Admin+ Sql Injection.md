@@ -1,6 +1,3 @@
-
-------
-
 #### About BigAnt
 
 BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.
