@@ -1,4 +1,3 @@
-### BigAnt Server Admin+ Sql Injection
 
 ------
 
