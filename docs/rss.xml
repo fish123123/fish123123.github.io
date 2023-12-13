@@ -1,23 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>Youyu</title><link>https://www.cnblogs.com/you-fish/</link><description>你总会有办法把一颗酸涩的柠檬酿成一杯甜美的柠檬汁。</description><copyright>Youyu</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://pic.cnblogs.com/avatar/3310985/20231102103108.png</url><title>avatar</title><link>https://www.cnblogs.com/you-fish/</link></image><lastBuildDate>Wed, 13 Dec 2023 10:10:34 +0000</lastBuildDate><managingEditor>Youyu</managingEditor><pubDate>Wed, 13 Dec 2023 10:10:34 +0000</pubDate><ttl>60</ttl><webMaster>Youyu</webMaster><item><title>BigAnt Server Admin+ Sql Injection</title><link>https://www.cnblogs.com/you-fish//post/BigAnt%20Server%20Admin%2B%20Sql%20Injection.html</link><description>#### About BigAnt&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>Youyu</title><link>https://www.cnblogs.com/you-fish/</link><description>你总会有办法把一颗酸涩的柠檬酿成一杯甜美的柠檬汁。</description><copyright>Youyu</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://pic.cnblogs.com/avatar/3310985/20231102103108.png</url><title>avatar</title><link>https://www.cnblogs.com/you-fish/</link></image><lastBuildDate>Wed, 13 Dec 2023 10:12:01 +0000</lastBuildDate><managingEditor>Youyu</managingEditor><pubDate>Wed, 13 Dec 2023 10:12:01 +0000</pubDate><ttl>60</ttl><webMaster>Youyu</webMaster><item><title>BigAnt Server Admin+ Sql Injection</title><link>https://www.cnblogs.com/you-fish//post/BigAnt%20Server%20Admin%2B%20Sql%20Injection.html</link><description>### About BigAnt&#13;
 &#13;
 BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.&#13;
 &#13;
-#### Vulnerability Description&#13;
+### Vulnerability Description&#13;
 &#13;
 Due to BigAnt Server's failure to filter parameters such as account_order, dev_code, and user_count, users with administrator privileges can inject SQL into the application, which can lead to a vulnerability in remote command execution.&#13;
 &#13;
-#### Affected Version&#13;
+### Affected Version&#13;
 &#13;
 BigAnt Server 5.6.06&#13;
 &#13;
-#### Vulnerability Verification Environment&#13;
+### Vulnerability Verification Environment&#13;
 &#13;
 Please refer to the official website for vulnerability construction: https://www.bigantsoft.com/&#13;
 &#13;
 BigAnt Server installation package download address: https://www.bigantsoft.com/download/bigantim56.zip&#13;
 &#13;
-#### Vulnerability Recurrence&#13;
+### Vulnerability Recurrence&#13;
 &#13;
 1. First log in to BigAnt Server with the administrator account. Default account: superadmin, password: 123456;&#13;
 2. After successful login, you can verify the vulnerability. The URL with SQL injection vulnerability is as follows:&#13;

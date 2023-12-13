@@ -1,22 +1,22 @@
-#### About BigAnt
+### About BigAnt
 
 BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.
 
-#### Vulnerability Description
+### Vulnerability Description
 
 Due to BigAnt Server's failure to filter parameters such as account_order, dev_code, and user_count, users with administrator privileges can inject SQL into the application, which can lead to a vulnerability in remote command execution.
 
-#### Affected Version
+### Affected Version
 
 BigAnt Server 5.6.06
 
-#### Vulnerability Verification Environment
+### Vulnerability Verification Environment
 
 Please refer to the official website for vulnerability construction: https://www.bigantsoft.com/
 
 BigAnt Server installation package download address: https://www.bigantsoft.com/download/bigantim56.zip
 
-#### Vulnerability Recurrence
+### Vulnerability Recurrence
 
 1. First log in to BigAnt Server with the administrator account. Default account: superadmin, password: 123456;
 2. After successful login, you can verify the vulnerability. The URL with SQL injection vulnerability is as follows:
