@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_colorblind" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="//cdn.staticfile.net/Primer/21.0.7/primer.css" rel="stylesheet" />
+    <link rel="icon" href="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="### 一、概述
+
+无论是做漏洞研究还是做安全测试，最终都需要以文本的方式将安全漏洞的信息呈现给需要理解漏洞的人，这个人可能是漏洞相关产品所在机构的审核人员，也可能是漏洞所属产品的研发人员，或者是产品经理之类的决策或管理人员。">
+<meta property="og:title" content="如何编写详细的漏洞报告">
+<meta property="og:description" content="### 一、概述
+
+无论是做漏洞研究还是做安全测试，最终都需要以文本的方式将安全漏洞的信息呈现给需要理解漏洞的人，这个人可能是漏洞相关产品所在机构的审核人员，也可能是漏洞所属产品的研发人员，或者是产品经理之类的决策或管理人员。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://fish123123.github.io/post/ru-he-bian-xie-xiang-xi-de-lou-dong-bao-gao.html">
+<meta property="og:image" content="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg">
+<title>如何编写详细的漏洞报告</title>
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">如何编写详细的漏洞报告</h1>
+<div class="title-right">
+    <a href="https://fish123123.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/fish123123/fish123123.github.io/issues/5" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h3>一、概述</h3>
+<p>无论是做漏洞研究还是做安全测试，最终都需要以文本的方式将安全漏洞的信息呈现给需要理解漏洞的人，这个人可能是漏洞相关产品所在机构的审核人员，也可能是漏洞所属产品的研发人员，或者是产品经理之类的决策或管理人员。</p>
+<p>一份详细且恰当的漏洞报告可以减少漏洞发现者或提交者与上述人员之间的沟通成本，尤其是描述复杂的漏洞。而现实中阅读漏洞报告的接收者对于漏洞详情与漏洞报告者之间常常产生分歧、争议，比如漏洞定级的分歧（报告者认为的定级比接收者理解的高）、漏洞复现的争议（接收者无法复现报告者的漏洞），即便漏洞报告从专业角度一切都没有问题，漏洞接收者也可能会花不少时间理解报告，因为负责修复漏洞的接收者（往往是研发人员）往往是不懂专业的安全术语的。</p>
+<h3>二、报告要点</h3>
+<p>在一份详细的漏洞报告中，漏洞详情的部分需要体现以下部分：</p>
+<ul>
+<li>**漏洞名称：**简洁清晰的标题</li>
+<li>**漏洞描述：**漏洞的上下文关系、漏洞原理以及利用成功的影响</li>
+<li>**漏洞位置：**造成漏洞的URL、参数或其他资源</li>
+<li>**影响范围：**漏洞利用成功受影响的用户、客户或目标人群</li>
+<li>**漏洞危害：**漏洞利用成功危害情况的简短说明</li>
+<li>**漏洞复杂度：**漏洞利用条件和难度的简短说明</li>
+<li>**发生概率：**漏洞被利用这件事发生的概率，比如：低、中、高</li>
+<li>**漏洞严重性：**结合漏洞危害和发生概率评估的严重性，比如：低危、中危、高危、严重</li>
+<li>**复现过程：**复现漏洞的逐步操作，需足够详细以确保漏洞接收者可复现</li>
+<li>**修复建议：**帮助开发者或相关人员修复或缓解漏洞的具体方式</li>
+</ul>
+<h3>三、编写示范</h3>
+<h4>1、漏洞名称</h4>
+<p><strong>漏洞名称</strong>是对于漏洞信息的简要说明。但简要不同于简单，过于简单的漏洞名称会导致漏洞接收者无法快速理解漏洞含义。</p>
+<p>比如国内某品牌漏洞扫描工具导出的扫描报告中的某漏洞的名称是：</p>
+<blockquote>
+<p>电话号码</p>
+</blockquote>
+<p>这个漏洞标题简单、粗暴且不明所以，需要漏洞接收者翻阅一系列漏洞位置后，才能在漏洞描述中看到是应用程序的注释或错误信息页面中包含手机号码，可能被用于社会工程学攻击。</p>
+<p>如此，这个漏洞名称应该改为：</p>
+<blockquote>
+<p><a href="https://example.com/" rel="nofollow">https://example.com/</a> 页面中存在电话号码泄露</p>
+</blockquote>
+<p>或者</p>
+<blockquote>
+<p>页面或注释存在电话号码泄露</p>
+</blockquote>
+<p>漏洞名称中具体的漏洞类型和简要的影响因素可以提供更为详细的漏洞信息，漏洞接收者可以快速判断漏洞情况，决定是否要进一步查看后续的漏洞详情。</p>
+<h4>2、漏洞描述</h4>
+<p><strong>漏洞描述</strong>是对于漏洞名称的详细补充，介绍了漏洞的基本原理和漏洞在应用程序的上下文关系，以及漏洞利用成功的影响。结合应用程序提供的详细、精准的漏洞描述可以让漏洞接收者更准确理解应用程序中的漏洞信息。</p>
+<p>以上文漏洞名称中的漏洞类型为例，通用的漏洞描述如下：</p>
+<blockquote>
+<p>Web应用程序中错误消息或者代码注释中含有电话号码，可能被用于社会工程学攻击。</p>
+</blockquote>
+<p>这段描述中的“社会工程学”会让多数漏洞接收者困惑：社会？工程学？学术？</p>
+<p>更为详细的漏洞描述如下：</p>
+<blockquote>
+<p><a href="https://example.com/" rel="nofollow">https://example.com/</a> 路径下包括news等地址在内的页面注释或页面信息中存在手机号码的泄露，该号码可能会被攻击者用于挖掘、检索更多关于企业和员工的信息，造成更大范围的攻击，或伪装成企业内部人员通过手机通讯诱导企业员工做出符合攻击者意图的操作。</p>
+</blockquote>
+<h4>3、漏洞位置</h4>
+<p><strong>漏洞位置</strong>描述的是发现漏洞存在的应用程序的具体的地址、部分以及相应的参数。</p>
+<p>比如：</p>
+<blockquote>
+<p>URL：<a href="https://example.com/news%EF%BC%88%E6%96%B0%E9%97%BB%E9%A1%B5%E9%9D%A2%EF%BC%89" rel="nofollow">https://example.com/news（新闻页面）</a></p>
+<p>参数：请求参数page</p>
+</blockquote>
+<h4>4、影响范围</h4>
+<p><strong>影响范围</strong>从应用程序的业务角度考虑，对于安全研究人员或测试人员来说通常比较难获取，真正使用应用程序的用户或者应用程序的负责人才更清楚的了解影响范围；但从漏洞所在位置的功能，也能够获知大概的影响范围。比如上述漏洞中的电话号码泄露会影响到公司的内部员工或者公司的内部信息保密性。</p>
+<h4>5、漏洞危害</h4>
+<p><strong>漏洞危害</strong>是漏洞描述中漏洞利用成功后的影响结合影响范围综合评估的危害程度。需要更简单明了的说明漏洞一旦被利用成功，对于影响范围内的用户、企业或业务潜在危害情况，危害的考虑分别包括：人身安全、业务稳定性、数据安全性、其他资产安全性、无形资产（品牌、声誉、知识产权、商标等等）。比如，某SQL注入漏洞影响范围是某应用的测试数据，而该应用是企业边缘环境的测试应用，无论漏洞类型和危害多么严重，即便漏洞利用成功，对于企业的用户、员工、业务、数据、资产影响也会非常有限。</p>
+<h4>6、漏洞复杂度</h4>
+<p><strong>漏洞复杂度</strong>是漏洞利用条件和利用难度的说明。尤其是利用条件，所有的受保护对象都存在漏洞，最极端的攻击方式是物理攻击，其攻击难度的天花板是战争手段，但对于漏洞报告而言显然需要更加实际的考虑漏洞利用条件，这可以作为漏洞接收者制定漏洞修复策略的参考之一。</p>
+<h4>7、发生概率</h4>
+<p><strong>发生概率</strong>是对于漏洞复杂度的更加直接表述，即漏洞被利用的可能性有多大。漏洞利用条件越低，利用难度越小，发生概率越大；反之，利用条件越高，利用难度越大，发生概率越小。在渗透测试过程中，电话号码泄露漏洞被利用的发生概率通常是高，但也需要安全人员的专业能力和经验加以判断，对于社工能力不同的安全人员利用难度会不同，因此不同人的判断结果上也可能会不同。</p>
+<h4>8、漏洞严重性</h4>
+<p><strong>漏洞严重性</strong>是结合漏洞危害和漏洞发生概率综合评估的严重性描述。但通常是基于安全研究人员或安全测试人员个人经验判断，也是漏洞报告最容易产生争议的部分，如上文漏洞危害部分的描述，直接按照漏洞类型进行漏洞严重性划分并不严谨，许多个人或漏洞规则中习惯性按照漏洞类型划分漏洞严重性，因而产生争议。倘若如实描述漏洞危害和发生概率，漏洞严重性的描述也会相对客观。国外有的漏洞报告需要安全研究人员或安全测试人员同时填写CVSS评分，也是为了确保漏洞严重性的客观。</p>
+<h4>9、复现过程</h4>
+<p><strong>复现过程</strong>是帮助漏洞接收者按照步骤一步一步重现漏洞发掘的过程，其重点在于描述的步骤和每个步骤的描述。</p>
+<p>比如：</p>
+<blockquote>
+<ol>
+<li>访问<a href="https://example.com/news?page=1%E3%80%82" rel="nofollow">https://example.com/news?page=1。</a></li>
+<li>在页面中点击鼠标右键，选择“查看网页源代码”。</li>
+<li>在网页源代码页面的底部，可以看到存在两个企业员工的手机号码。</li>
+</ol>
+</blockquote>
+<p>如果在复现过程的步骤中需要用到截图展示漏洞的证明（PoC），则需要在截图中通过标注等方式提示漏洞复现过程中提及的漏洞位置、请求、响应等信息。</p>
+<h4>10、修复建议</h4>
+<p><strong>修复建议</strong>是从漏洞报告者对于应用程序和漏洞信息掌握的情况，对于漏洞解决的详细建议。漏洞报告中的漏洞解决思路主要是缓解（降低漏洞发生概率）和规避（避免漏洞发生）。</p>
+<p>修复建议需要根据漏洞严重性、影响范围以及应用程序的业务和功能需要提出，一个不良做法是粗暴的写一句“你懂的”，又或者根据漏洞类型的通用修复方式给出不适用于应用程序业务和功能需求的修复方法，比如“关闭Web服务器错误提示；确保代码注释中不含有电话号码”。</p>
+<p>企业官方网站中的电话号码信息可能是用于业务联系的，按照上述的修复方法显然是和企业业务需求冲突。因此，需要结合该业务需要编写修复建议：</p>
+<blockquote>
+<p>建议将页面中的员工个人手机号码修改为企业座机号码。</p>
+</blockquote></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+</div>
+    <div id="footer">Copyright © <span id="year"></span><a href="https://fish123123.github.io"> Youyu </a>
+<p><a href="https://beian.miit.gov.cn/" target="_blank">nonono</a>
+<span id="runday"></span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a>
+</p>
+
+<script>
+if("12/01/2023"!=""){
+    var now=new Date();
+    var startSite=new Date("12/01/2023");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("year").innerHTML=now.getFullYear();
+    if("nonono"!=""){document.getElementById("runday").innerHTML=" • "+"网站运行"+diffDay+"天"+" • ";}
+    else{document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";}
+}
+</script>
+</div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek main https://github.com/Meekdai/Gmeek \n\n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","fish123123/fish123123.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+</script>
+
+
+</html>
