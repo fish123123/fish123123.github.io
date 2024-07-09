@@ -4,8 +4,8 @@
     <meta content="text/html; charset=utf-8" http-equiv="content-type" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link href="//cdn.staticfile.net/Primer/21.0.7/primer.css" rel="stylesheet" />
-    <link rel="icon" href="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg"><script>
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    <link rel="icon" href="https://github.com/fish123123/statics/blob/main/images/avatar.png"><script>
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
@@ -18,7 +18,7 @@
 无论是做漏洞研究还是做安全测试，最终都需要以文本的方式将安全漏洞的信息呈现给需要理解漏洞的人，这个人可能是漏洞相关产品所在机构的审核人员，也可能是漏洞所属产品的研发人员，或者是产品经理之类的决策或管理人员。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://fish123123.github.io/post/ru-he-bian-xie-xiang-xi-de-lou-dong-bao-gao.html">
-<meta property="og:image" content="https://github.com/fish123123/fish123123.github.io/blob/main/81842C81-B807-4587-B684-140AE3240310_1_201_a.jpeg">
+<meta property="og:image" content="https://github.com/fish123123/statics/blob/main/images/avatar.png">
 <title>如何编写详细的漏洞报告</title>
 
 
@@ -155,10 +155,12 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>建议将页面中的员工个人手机号码修改为企业座机号码。</p>
 </blockquote></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
+
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
+
 </div>
-    <div id="footer">Copyright © <span id="year"></span><a href="https://fish123123.github.io"> Youyu </a>
+    <div id="footer">Copyright © <span id="year"></span> <a href="https://fish123123.github.io">Youyu</a>
 <p><a href="https://beian.miit.gov.cn/" target="_blank">nonono</a>
 <span id="runday"></span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a>
 </p>
@@ -211,6 +213,8 @@ console.log("\n %c Gmeek main https://github.com/Meekdai/Gmeek \n\n","padding:5p
 <script>
 document.getElementById("pathHome").setAttribute("d",IconList["home"]);
 document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
 
 function openComments(){
     cm=document.getElementById("comments");
